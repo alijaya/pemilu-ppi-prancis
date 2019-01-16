@@ -40,7 +40,8 @@ export default {
   name: 'admin',
   data() {
     return {
-      verifiedUsersRef: null,
+      verifiedUsersRef: this.$db.collection('verified_users'),
+      usersRef: this.$db.collection('users'),
       users: [],
       newUserData: {
         name: '',
@@ -60,7 +61,6 @@ export default {
   },
   methods: {
     setup() {
-      this.verifiedUsersRef = this.$db.collection('verified_users')
       const unsubscribe = this.verifiedUsersRef.onSnapshot(query => {
         this.users = []
         query.forEach(doc => {
@@ -72,6 +72,7 @@ export default {
 
       this.$store.$once('userLogout', () => {
         unsubscribe()
+        this.users = []
       })
     },
     addNewUser() {
@@ -88,6 +89,17 @@ export default {
     deleteUser(row) {
       const name = row.name
       this.verifiedUsersRef.doc(row._id).delete()
+      .then(() => {
+        return this.usersRef.where('id_verified_users', '==', row._id).get()
+      })
+      .then(query => {
+        const batch = this.$db.batch()
+        query.forEach(doc => {
+          batch.delete(doc.ref)
+        })
+
+        return batch.commit()
+      })
       .then(() => {
         this.$success(`${name} deleted`)
       })
