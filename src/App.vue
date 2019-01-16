@@ -1,5 +1,5 @@
 <template>
-  <el-container class="app">
+  <el-container id="app" class="app">
     <el-header>
       <el-menu 
         :default-active="this.$route.path"
@@ -7,9 +7,10 @@
         router
         class="nav">
         <el-menu-item index="/">Home</el-menu-item>
-        <el-menu-item v-if="this.$store.currentUser" index="/user">User</el-menu-item>
-        <el-menu-item v-if="!this.$store.currentUser" index="/login">Login</el-menu-item>
-        <el-menu-item index="/admin">Admin</el-menu-item>
+        <el-menu-item v-if="this.$store.isLoggedIn" index="/user">User</el-menu-item>
+        <el-menu-item v-if="this.$store.isAdmin" index="/admin">Admin</el-menu-item>
+        <el-menu-item v-if="!this.$store.isLoggedIn" index="/login">Login</el-menu-item>
+        <el-menu-item v-if="this.$store.isLoggedIn" index="" @click="logout">Logout</el-menu-item>
       </el-menu>
     </el-header>
     <router-view/>
@@ -18,7 +19,20 @@
 
 <script>
 export default {
-  name: 'app'
+  name: 'app',
+  methods: {
+    logout() {
+      const email = this.$store.currentUser.email
+      this.$auth.signOut()
+      .then(() => {
+        this.$success(`${email} has signed out`)
+        this.$router.push({ name: 'login' })
+      })
+      .catch(error => {
+        this.$error(error)
+      })
+    }
+  }
 }
 </script>
 

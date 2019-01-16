@@ -40,7 +40,7 @@ export default {
   name: 'admin',
   data() {
     return {
-      usersRef: null,
+      verifiedUsersRef: null,
       users: [],
       newUserData: {
         name: '',
@@ -49,31 +49,34 @@ export default {
       }
     }
   },
-  created() {
-    this._listeners = []
-    this.usersRef = this.$db.collection('verified_users')
-    this.listenSnapshot(this.usersRef, snapshot => {
-      this.users = []
-      snapshot.forEach(doc => {
-        const data = doc.data()
-        data._id = doc.id
-        this.users.push(data)
+  mounted() {
+    if (this.$store.isUserLoaded) {
+      this.setup()
+    } else {
+      this.$store.$once('userLoaded', () => {
+        this.setup()
       })
-    })
-  },
-  destroy() {
-    for (let listener in this._listeners) {
-      listener.unsubscribe()
     }
-    this._listeners = null
   },
   methods: {
-    listenSnapshot(ref, f) {
-      this._listeners.push(ref.onSnapshot(f))
+    setup() {
+      this.verifiedUsersRef = this.$db.collection('verified_users')
+      const unsubscribe = this.verifiedUsersRef.onSnapshot(query => {
+        this.users = []
+        query.forEach(doc => {
+          const data = doc.data()
+          data._id = doc.id
+          this.users.push(data)
+        })
+      })
+
+      this.$store.$once('userLogout', () => {
+        unsubscribe()
+      })
     },
     addNewUser() {
       const name = this.newUserData.name
-      this.usersRef.add(this.newUserData)
+      this.verifiedUsersRef.add(this.newUserData)
       .then(() => {
         this.$success(`${name} added`)
       })
@@ -84,7 +87,7 @@ export default {
     },
     deleteUser(row) {
       const name = row.name
-      this.usersRef.doc(row._id).delete()
+      this.verifiedUsersRef.doc(row._id).delete()
       .then(() => {
         this.$success(`${name} deleted`)
       })

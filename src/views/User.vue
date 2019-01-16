@@ -14,13 +14,10 @@
         type="error"
         show-icon
         :closable="false" />
-      <el-button @click="logout">Log Out</el-button>
       <template v-if="$store.isRegistered && $store.isUserLoaded">
         <h2>Vote!</h2>
         <el-radio-group v-model="vote" @change="onChange">
-          <el-radio :label="1">1. Ridho dan Avira</el-radio>
-          <el-radio :label="2">2. Hazem dan Yulia</el-radio>
-          <el-radio :label="0">Abstain</el-radio>
+          <el-radio v-for="(item, index) in voteChoices" :key="index" :label="index">{{item}}</el-radio>
         </el-radio-group>
       </template>
     </template>
@@ -33,11 +30,15 @@ export default {
   name: 'user',
   data() {
     return {
-      vote: 0
+      vote: 0,
+      voteChoices: [
+        'Abstain',
+        '1. Ridho dan Avira',
+        '2. Hazem dan Yulia'
+      ]
     }
   },
   mounted() {
-    console.log(this.$store.userData.vote)
     if (this.$store.isUserLoaded) {
       this.vote = this.$store.userData.vote
     } else {
@@ -48,22 +49,13 @@ export default {
   },
   methods: {
     onChange(value) {
-      console.log(value)
       this.$store.userRef.set({
-        vote: this.vote
+        vote: value
       }, { merge: true })
-    },
-    logout() {
-      const email = this.$store.currentUser.email
-      this.$auth.signOut()
       .then(() => {
-        this.$success(`${email} has signed out`)
-        this.$router.push({ name: 'login' })
+        this.$success(`Saved: "${this.voteChoices[value]}"`)
       })
-      .catch(error => {
-        this.$error(error)
-      })
-    }
+    },
   }
 }
 </script>

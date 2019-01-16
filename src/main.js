@@ -39,7 +39,9 @@ Vue.prototype.$store = new Vue({
       userLoaded: false,
       userData: {},
       userRef: null,
+      isLoggedIn: false,
       isRegistered: false,
+      isAdmin: false,
     }
   },
   methods: {
@@ -53,17 +55,26 @@ Vue.prototype.$store = new Vue({
       this.userId = null
       this.userData = {}
       this.userRef = null
+      this.isLoggedIn = false
       this.isRegistered = false
+      this.isAdmin = false
 
+      if (this.currentUser && this.currentUser != user) {
+        // logout
+        this.$emit('userLogout')
+      }
+      
       this.currentUser = user
       if (this.currentUser) {
+        this.isLoggedIn = true
         this.userId = this.currentUser.uid
         const email = this.currentUser.email
         const verifiedUsersRef = this.$db.collection('verified_users')
         const usersRef = this.$db.collection('users')
+        const adminsRef = this.$db.collection('admins')
         this.userRef = usersRef.doc(this.userId)
 
-        this.userRef.get()
+        return this.userRef.get()
         .then(doc => {
           if (doc.exists) {
             this.isRegistered = true
@@ -96,6 +107,14 @@ Vue.prototype.$store = new Vue({
               }
             })
           }
+        })
+        .then(() => {
+          return adminsRef.doc(this.userId).get()
+          .then(doc => {
+            if (doc.exists) {
+              this.isAdmin = true
+            }
+          })
         })
         .then(() => {
           if (this.isRegistered) {
