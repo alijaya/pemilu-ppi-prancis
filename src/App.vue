@@ -1,14 +1,26 @@
 <template>
-  <el-container id="app">
-    <el-header id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/login">Login</router-link> |
-      <router-link to="/user">User</router-link> |
-      <router-link to="/admin">Admin</router-link> |
+  <el-container class="app">
+    <el-header>
+      <el-menu 
+        :default-active="this.$route.path"
+        mode="horizontal"
+        router
+        class="nav">
+        <el-menu-item index="/">Home</el-menu-item>
+        <el-menu-item v-if="this.$store.currentUser" index="/user">User</el-menu-item>
+        <el-menu-item v-if="!this.$store.currentUser" index="/login">Login</el-menu-item>
+        <el-menu-item index="/admin">Admin</el-menu-item>
+      </el-menu>
     </el-header>
     <router-view/>
   </el-container>
 </template>
+
+<script>
+export default {
+  name: 'app'
+}
+</script>
 
 <style>
 body {
@@ -21,6 +33,5 @@ body {
 </style>
 
 <style scoped>
-#app {
-}
+
 </style>
