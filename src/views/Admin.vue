@@ -7,10 +7,10 @@
       <el-form-item label="Email">
         <el-input v-model="newUserData.email" placeholder="Email" />
       </el-form-item>
-      <el-form-item label="Pass">
-        <el-input v-model="newUserData.pass" placeholder="Pass" />
+      <el-form-item label="PPI">
+        <el-input v-model="newUserData.ppi" placeholder="PPI" />
       </el-form-item>
-      <el-form-item label="Pass">
+      <el-form-item>
         <el-button @click="addNewUser">Add</el-button>
       </el-form-item>
     </el-form>
@@ -18,7 +18,7 @@
       :data="users">
       <el-table-column prop="name" label="Name"/>
       <el-table-column prop="email" label="Email"/>
-      <el-table-column prop="pass" label="Pass"/>
+      <el-table-column prop="ppi" label="PPI"/>
       <el-table-column width="200">
         <template slot-scope="scope">
           <el-button
@@ -35,7 +35,6 @@
 
 <script>
 // @ is an alias to /src
-import firebase from '@/scripts/firebaseConfigured'
 
 export default {
   name: 'admin',
@@ -46,13 +45,13 @@ export default {
       newUserData: {
         name: '',
         email: '',
-        pass: '',
+        ppi: '',
       }
     }
   },
   created() {
     this._listeners = []
-    this.usersRef = this.$db.collection('users')
+    this.usersRef = this.$db.collection('verified_users')
     this.listenSnapshot(this.usersRef, snapshot => {
       this.users = []
       snapshot.forEach(doc => {

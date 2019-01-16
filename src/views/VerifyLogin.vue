@@ -14,7 +14,7 @@ export default {
   },
   mounted() {
     if (this.$auth.isSignInWithEmailLink(window.location.href)) {
-      let email = window.localStorage.getItem('emailForSignIn')
+      const email = window.localStorage.getItem('emailForSignIn')
       window.localStorage.removeItem('emailForSignIn')
       if (email) {
         this.verify(email)
@@ -31,7 +31,7 @@ export default {
       this.$router.replace({ name: 'login' })
     },
     successToVerify() {
-      this.$success(`${email} logged in`)
+      this.$success(`${this.$auth.currentUser.email} logged in`)
       this.$router.replace({ name: 'user' })
     },
     verify(email) {
