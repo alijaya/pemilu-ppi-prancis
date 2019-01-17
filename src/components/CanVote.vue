@@ -25,13 +25,17 @@ export default {
         'before': 'The vote has not been opened',
         'after': 'The vote has already been closed',
       },
-      statusToVoteDescriptions: {
+    }
+  },
+  computed: {
+    statusToVoteDescriptions() {
+      return {
         'valid': `The vote will end at ${this.$store.dateRange[1].toLocaleString('en-GB')}`,
         'locked': 'The admin has locked this vote',
         'before': `The vote will open at ${this.$store.dateRange[0].toLocaleString('en-GB')}`,
         'after': `The vote has been closed since ${this.$store.dateRange[1].toLocaleString('en-GB')}`,
-      },
+      }
     }
-  },
+  }
 }
 </script>

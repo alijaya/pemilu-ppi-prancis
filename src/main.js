@@ -126,7 +126,7 @@ Vue.prototype.$store = new Vue({
                   ppi: data.ppi,
                 }
                 this.isRegistered = true
-                return this.userRef.create(newUser)
+                return this.userRef.set(newUser)
               } else {
                 // is not verified
                 this.isRegistered = false

@@ -123,24 +123,29 @@ export default {
       })
     },
     addNewUser() {
-      const name = this.newUserData.name
-      const email = this.newUserData.email
-      this.verifiedUsersRef.where('email', '==', email).get()
+      const data = {
+        name: this.newUserData.name,
+        email: this.newUserData.email,
+        ppi: this.newUserData.ppi,
+      }
+        this.newUserData = {}
+      this.verifiedUsersRef.where('email', '==', data.email).get()
       .then(query => {
-        if (query.size > 0) {
-          throw `${email} has already existed`
+        if (!query.empty) {
+          const ref = query.docs[0].ref
+          return ref.set(data)
+          .then(() => {
+            this.$success(`${data.email} updated`)
+          })
         } else {
-          return this.verifiedUsersRef.add(this.newUserData)
+          return this.verifiedUsersRef.add(data)
+          .then(() => {
+            this.$success(`${data.email} added`)
+          })
         }
-      })
-      .then(() => {
-        this.$success(`${name} added`)
       })
       .catch(error => {
         this.$error(error)
-      })
-      .finally(() => {
-        this.newUserData = {}
       })
     },
     deleteUser(row) {

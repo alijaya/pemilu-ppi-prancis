@@ -1,12 +1,17 @@
 <template>
   <el-container class="app">
-    <el-header>
+    <el-header height="auto">
       <el-menu 
         :default-active="this.$route.path"
         mode="horizontal"
         router
         class="nav">
         <el-menu-item index="/">Home</el-menu-item>
+        <el-submenu index="/candidates">
+          <template slot="title">Candidates</template>
+          <el-menu-item index="/ridho">1. Ridho dan Avira</el-menu-item>
+          <el-menu-item index="/hazem">2. Hazem dan Yulia</el-menu-item>
+        </el-submenu>
         <el-menu-item v-if="this.$store.isLoggedIn" index="/user">User</el-menu-item>
         <el-menu-item v-if="this.$store.isAdmin" index="/admin">Admin</el-menu-item>
         <el-menu-item v-if="!this.$store.isLoggedIn" index="/login">Login</el-menu-item>

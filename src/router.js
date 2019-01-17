@@ -1,6 +1,8 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import Home from './views/Home.vue'
+import Ridho from './views/Ridho.vue'
+import Hazem from './views/Hazem.vue'
 import Login from './views/Login.vue'
 import VerifyLogin from './views/VerifyLogin.vue'
 import User from './views/User.vue'
@@ -17,6 +19,16 @@ const router = new Router({
       path: '/',
       name: 'home',
       component: Home
+    },
+    {
+      path: '/ridho',
+      name: 'ridho',
+      component: Ridho
+    },
+    {
+      path: '/hazem',
+      name: 'hazem',
+      component: Hazem
     },
     {
       path: '/login',
