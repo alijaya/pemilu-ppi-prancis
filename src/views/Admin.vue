@@ -45,6 +45,8 @@
       </el-form-item>
     </el-form>
     <h1>Registered Users ({{users.length}})</h1>
+    <el-button @click="makeUsersClean">Make Users Clean</el-button>
+    <el-button @click="removeDuplicates">Remove Duplicates</el-button>
     <el-table
       :data="users"
       :default-sort = "{prop: 'name', order: 'ascending'}">
@@ -97,6 +99,81 @@ export default {
     }
   },
   methods: {
+    cleanUpUser(user) {
+      const result = {}
+      const toTitleCase = s => s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase())
+      const removeDouble = s => s.replace(/ +/g, ' ')
+      result.name = toTitleCase(removeDouble(user.name.trim()))
+      result.email = user.email.trim().toLowerCase()
+      result.ppi = user.ppi.trim()
+      return result
+    },
+    isCleanUser(user) {
+      const cleanUser = this.cleanUpUser(user)
+      return user.name == cleanUser.name && user.email == cleanUser.email && user.ppi == cleanUser.ppi
+    },
+    makeUsersClean() {
+      this.verifiedUsersRef.get()
+      .then(query => {
+        const dirtyDoc = []
+        query.forEach(doc => {
+          const user = doc.data()
+          if (!this.isCleanUser(user)) {
+            dirtyDoc.push(doc)
+          }
+        })
+        if (dirtyDoc.length == 0) {
+          this.$success('Database has been already clean')
+        } else {
+          this.$confirm(`Found ${dirtyDoc.length} dirty users. Clean up?`, 'Clean Up')
+          .then(() => {
+            Promise.all(dirtyDoc.map(doc => {
+              const cleanUser = this.cleanUpUser(doc.data())
+              return doc.ref.set(cleanUser)
+            }))
+            .then(() => {
+              this.$success('Database cleaned up')
+            })
+          })
+          .catch(() => {
+            this.$message('Cancel clean up')
+          })
+        }
+      })
+    },
+    removeDuplicates() {
+      this.verifiedUsersRef.get()
+      .then(query => {
+        const dict = {}
+        const duplicatedDoc = []
+        query.forEach(doc => {
+          const user = this.cleanUpUser(doc.data())
+          if (user.email in dict) {
+            // duplicated!
+            duplicatedDoc.push(user)
+          } else {
+            dict[user.email] = user
+          }
+        })
+
+        if (duplicatedDoc == 0) {
+          this.$success('No duplicated users')
+        } else {
+          this.$confirm(`Found ${duplicatedDoc.length} duplicated users. Remove duplicates?`, 'Remove Duplicates')
+          .then(() => {
+            Promise.all(duplicatedDoc.map(doc => {
+              return doc.ref.delete()
+            }))
+            .then(() => {
+              this.$success('Duplicates removed')
+            })
+          })
+          .catch(() => {
+            this.$message('Cancel remove duplicates')
+          })
+        }
+      })
+    },
     setup() {
       this.dateRange = this.$store.dateRange
       this.isLocked = this.$store.isLocked
