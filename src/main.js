@@ -4,6 +4,7 @@ import router from './router'
 
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
+import locale from 'element-ui/lib/locale/lang/en'
 
 // import VueGAPI from 'vue-gapi'
 
@@ -11,7 +12,7 @@ import firebase from '@/scripts/firebaseConfigured'
 
 Vue.config.productionTip = false
 
-Vue.use(ElementUI)
+Vue.use(ElementUI, { locale })
 
 Vue.prototype.$firebase = firebase
 Vue.prototype.$auth = firebase.auth()
@@ -32,6 +33,7 @@ Vue.prototype.$error = message => {
 }
 
 Vue.prototype.$store = new Vue({
+  render: h => h('div'),
   data() {
     return {
       currentUser: null,
@@ -42,9 +44,34 @@ Vue.prototype.$store = new Vue({
       isLoggedIn: false,
       isRegistered: false,
       isAdmin: false,
+      controlRef: null,
+      dateRange: [Date.now(), Date.now()],
+      isLocked: false,
+    }
+  },
+  computed: {
+    statusToVote() {
+      if (this.isLocked) {
+        return 'locked'
+      } else if (Date.now() < this.dateRange[0]){
+        return 'before'
+      } else if (Date.now() > this.dateRange[1]) {
+        return 'after'
+      } else {
+        return 'valid'
+      }
     }
   },
   methods: {
+    setupGlobal() {
+      this.controlRef = this.$db.collection('global').doc('control')
+      this.controlRef
+      .onSnapshot(doc => {
+        const data = doc.data()
+        this.dateRange = [data.startDate.toDate(), data.endDate.toDate()]
+        this.isLocked = data.locked
+      })
+    },
     changeUser(user) {
       // reset
       if (this._unsubscribe) {
@@ -97,10 +124,9 @@ Vue.prototype.$store = new Vue({
                   name: data.name,
                   email: data.email,
                   ppi: data.ppi,
-                  vote: -1,
                 }
                 this.isRegistered = true
-                return this.userRef.set(newUser)
+                return this.userRef.create(newUser)
               } else {
                 // is not verified
                 this.isRegistered = false
@@ -128,13 +154,17 @@ Vue.prototype.$store = new Vue({
       }
     }
   }
-})
+}).$mount('#store')
 
-const firstTime = true
+window.store = Vue.prototype.$store
+
+let firstTime = true
 firebase.auth().onAuthStateChanged(user => {
   Vue.prototype.$store.changeUser(user)
   
   if (firstTime) {
+    firstTime = false
+    Vue.prototype.$store.setupGlobal()
     new Vue({
       router,
       render: h => h(App)

@@ -31,7 +31,7 @@ export default {
       this.loginInfo.email = ''
       // https://firebase.google.com/docs/auth/web/email-link-auth
       const actionCodeSettings = {
-        url: 'http://localhost:8080/verifylogin',
+        url: `${process.env.VUE_APP_HOSTING}/verifylogin`,
         handleCodeInApp: true,
       }
       this.$auth.sendSignInLinkToEmail(email, actionCodeSettings)

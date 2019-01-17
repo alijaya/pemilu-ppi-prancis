@@ -1,5 +1,26 @@
 <template>
   <el-main class="admin">
+    <h1>Vote Time</h1>
+    <el-form :inline="true">
+      <el-form-item>
+        <el-switch
+          v-model="isLocked"
+          active-text="Locked"
+          inactive-text="Unlocked"
+          @change="onLockedChange" />
+      </el-form-item>
+      <el-form-item>
+        <el-date-picker
+          v-model="dateRange"
+          type="datetimerange"
+          range-separator="To"
+          start-placeholder="Start date"
+          end-placeholder="End date"
+          format="dd/MM/yyyy, HH:mm:ss"
+          @change="onDateChange" />
+      </el-form-item>
+    </el-form>
+    <h1>Registered Users</h1>
     <el-form ref="form" class="form" :inline="true" :model="newUserData">
       <el-form-item label="Name">
         <el-input v-model="newUserData.name" placeholder="Name" />
@@ -16,10 +37,10 @@
     </el-form>
     <el-table
       :data="users">
-      <el-table-column prop="name" label="Name"/>
-      <el-table-column prop="email" label="Email"/>
-      <el-table-column prop="ppi" label="PPI"/>
-      <el-table-column width="200">
+      <el-table-column prop="name" label="Name" width="200"/>
+      <el-table-column prop="email" label="Email" width="300"/>
+      <el-table-column prop="ppi" label="PPI" width="150"/>
+      <el-table-column align="right">
         <template slot-scope="scope">
           <el-button
             type="text"
@@ -40,6 +61,9 @@ export default {
   name: 'admin',
   data() {
     return {
+      dateRange: null,
+      isLocked: false,
+      controlRef: this.$db.collection('global').doc('control'),
       verifiedUsersRef: this.$db.collection('verified_users'),
       usersRef: this.$db.collection('users'),
       users: [],
@@ -61,7 +85,11 @@ export default {
   },
   methods: {
     setup() {
-      const unsubscribe = this.verifiedUsersRef.onSnapshot(query => {
+      this.dateRange = this.$store.dateRange
+      this.isLocked = this.$store.isLocked
+
+      const verifiedUsersRefUnsubscribe = this.verifiedUsersRef
+      .onSnapshot(query => {
         this.users = []
         query.forEach(doc => {
           const data = doc.data()
@@ -71,20 +99,49 @@ export default {
       })
 
       this.$store.$once('userLogout', () => {
-        unsubscribe()
+        verifiedUsersRefUnsubscribe()
         this.users = []
+      })
+    },
+    onLockedChange(value) {
+      this.controlRef.update({
+        locked: value
+      })
+      .then(() => {
+        this.$success(`Vote is now ${value ? 'locked' : 'unlocked'}`)
+      })
+    },
+    onDateChange(value) {
+      if (!value) return
+      const fromDate = this.$firebase.firestore.Timestamp.fromDate
+      this.controlRef.update({
+        startDate: fromDate(value[0]),
+        endDate: fromDate(value[1])
+      })
+      .then(() => {
+        this.$success(`Date changed: ${value[0].toLocaleString('en-GB')} to ${value[1].toLocaleString('en-GB')}`)
       })
     },
     addNewUser() {
       const name = this.newUserData.name
-      this.verifiedUsersRef.add(this.newUserData)
+      const email = this.newUserData.email
+      this.verifiedUsersRef.where('email', '==', email).get()
+      .then(query => {
+        if (query.size > 0) {
+          throw `${email} has already existed`
+        } else {
+          return this.verifiedUsersRef.add(this.newUserData)
+        }
+      })
       .then(() => {
         this.$success(`${name} added`)
       })
       .catch(error => {
         this.$error(error)
       })
-      this.newUserData = {}
+      .finally(() => {
+        this.newUserData = {}
+      })
     },
     deleteUser(row) {
       const name = row.name
@@ -122,7 +179,4 @@ export default {
 </script>
 
 <style scoped>
-.form {
-  margin-top: 1em;
-}
 </style>

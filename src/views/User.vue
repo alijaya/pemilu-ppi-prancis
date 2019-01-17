@@ -1,5 +1,6 @@
 <template>
   <el-main class="user">
+    <CanVote />
     <template v-if="$store.currentUser">
       <h1>Hello {{$store.userData.name || $store.currentUser.email}}</h1>
       <el-alert
@@ -14,20 +15,31 @@
         type="error"
         show-icon
         :closable="false" />
-      <template v-if="$store.isRegistered && $store.isUserLoaded">
-        <h2>Vote!</h2>
-        <el-radio-group v-model="vote" @change="onChange">
-          <el-radio v-for="(item, index) in voteChoices" :key="index" :label="index">{{item}}</el-radio>
-        </el-radio-group>
-      </template>
+      <h2>Vote!</h2>
+      <el-radio-group 
+        v-model="vote" 
+        :disabled="!($store.statusToVote == 'valid' && $store.isRegistered && $store.isUserLoaded)"
+        @change="onChange">
+        <el-radio 
+          v-for="(item, index) in voteChoices" 
+          :key="index" 
+          :label="index" 
+          border
+          class="radio">{{item}}</el-radio>
+      </el-radio-group>
     </template>
   </el-main>
 </template>
 
 <script>
 // @ is an alias to /src
+import CanVote from '@/components/CanVote'
+
 export default {
   name: 'user',
+  components: {
+    CanVote
+  },
   data() {
     return {
       vote: 0,
@@ -35,7 +47,7 @@ export default {
         'Abstain',
         '1. Ridho dan Avira',
         '2. Hazem dan Yulia'
-      ]
+      ],
     }
   },
   mounted() {
@@ -49,9 +61,9 @@ export default {
   },
   methods: {
     onChange(value) {
-      this.$store.userRef.set({
+      this.$store.userRef.update({
         vote: value
-      }, { merge: true })
+      })
       .then(() => {
         this.$success(`Saved: "${this.voteChoices[value]}"`)
       })
@@ -61,4 +73,11 @@ export default {
 </script>
 
 <style scoped>
+.radio {
+  display: block;
+}
+.radio + .radio {
+  margin-left: 0 !important;
+  margin-top: 1em;
+}
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <el-container id="app" class="app">
+  <el-container class="app">
     <el-header>
       <el-menu 
         :default-active="this.$route.path"
