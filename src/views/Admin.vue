@@ -20,7 +20,16 @@
           @change="onDateChange" />
       </el-form-item>
     </el-form>
-    <h1>Registered Users</h1>
+    <h1>Upload with XLSX</h1>
+    <el-upload
+      action="#"
+      drag
+      multiple
+      :before-upload="onUpload">
+      <i class="el-icon-upload" />
+      <div class="el-upload__text">Drop file here or <em>click to upload</em></div>
+    </el-upload>
+    <h1>Add User</h1>
     <el-form ref="form" class="form" :inline="true" :model="newUserData">
       <el-form-item label="Name">
         <el-input v-model="newUserData.name" placeholder="Name" />
@@ -35,11 +44,13 @@
         <el-button @click="addNewUser">Add</el-button>
       </el-form-item>
     </el-form>
+    <h1>Registered Users ({{users.length}})</h1>
     <el-table
-      :data="users">
-      <el-table-column prop="name" label="Name" width="200"/>
-      <el-table-column prop="email" label="Email" width="300"/>
-      <el-table-column prop="ppi" label="PPI" width="150"/>
+      :data="users"
+      :default-sort = "{prop: 'name', order: 'ascending'}">
+      <el-table-column sortable prop="name" label="Name" width="200"/>
+      <el-table-column sortable prop="email" label="Email" width="300"/>
+      <el-table-column :filters="ppiFilters" :filter-method="filterHandler" prop="ppi" label="PPI" width="150"/>
       <el-table-column align="right">
         <template slot-scope="scope">
           <el-button
@@ -56,6 +67,7 @@
 
 <script>
 // @ is an alias to /src
+import XLSX from 'xlsx'
 
 export default {
   name: 'admin',
@@ -71,7 +83,8 @@ export default {
         name: '',
         email: '',
         ppi: '',
-      }
+      },
+      ppiFilters: [],
     }
   },
   mounted() {
@@ -91,16 +104,104 @@ export default {
       const verifiedUsersRefUnsubscribe = this.verifiedUsersRef
       .onSnapshot(query => {
         this.users = []
+        const ppis = {}
         query.forEach(doc => {
           const data = doc.data()
           data._id = doc.id
           this.users.push(data)
+          ppis[data.ppi] = true
         })
+        this.ppiFilters = []
+        for (let ppi in ppis) {
+          this.ppiFilters.push({text: ppi, value: ppi})
+        }
       })
 
       this.$store.$once('userLogout', () => {
         verifiedUsersRefUnsubscribe()
         this.users = []
+      })
+    },
+    onUpload(file) {
+      // https://github.com/SheetJS/js-xlsx
+      const rABS = true // true: readAsBinaryString, false: readAsArrayBuffer
+      const reader = new FileReader()
+      reader.onload = event => {
+        let data = event.target.result
+        if (!rABS) data = new Uint8Array(data)
+        const workbook = XLSX.read(data, {type: rABS ? 'binary' : 'array'})
+
+        this.uploadWorkbook(workbook)
+      }
+      if (rABS) {
+        reader.readAsBinaryString(file)
+      } else {
+        reader.readAsArrayBuffer(file)
+      }
+      return false
+    },
+    createUsersDisplay(users) {
+      const h = this.$createElement
+      // return h('ul', {
+      //   style: {
+      //     'max-height': '200px',
+      //     'overflow-y': 'auto',
+      //   }
+      // }, users.map(user => h('li', null, user.email)))
+      return h('el-table', {
+        props: {
+          data: users,
+          height: 400,
+        },
+      }, [
+        h('el-table-column', {
+          props: {
+            prop: 'name',
+            label: 'Name',
+            width: 250,
+          }
+        }),
+        h('el-table-column', {
+          props: {
+            prop: 'email',
+            label: 'Email',
+            width: 250,
+          }
+        }),
+        h('el-table-column', {
+          props: {
+            prop: 'ppi',
+            label: 'PPI',
+            width: 150,
+          }
+        })
+      ])
+    },
+    uploadWorkbook(workbook) {
+      const first_sheet_name = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[first_sheet_name]
+
+      const data = XLSX.utils.sheet_to_json(worksheet, {header:1})
+      .map(item => {
+        return {
+          name: item[0], 
+          email: item[1], 
+          ppi: item[2]
+        }
+      })
+
+      const h = this.$createElement
+      const displayNode = 
+      h('div', null, [
+        h('p', null, `${data.length} users will be uploaded`),
+        this.createUsersDisplay(data)
+      ])
+      this.$confirm(displayNode, 'Confirm upload')
+      .then(() => {
+        this.batchAddNewUsers(data)
+      })
+      .catch(() => {
+        this.$message('Cancel uploading')
       })
     },
     onLockedChange(value) {
@@ -122,13 +223,67 @@ export default {
         this.$success(`Date changed: ${value[0].toLocaleString('en-GB')} to ${value[1].toLocaleString('en-GB')}`)
       })
     },
+    batchAddNewUsers(users) {
+      const addedUsers = []
+      const updatedUsers = []
+      const failedUsers = []
+      const loading = this.$loading({
+        lock: true,
+        text: 'Uploading the files',
+      })
+      Promise.all(users.map(user => {
+        if (user && user.name && user.email && user.ppi) {
+          return this.verifiedUsersRef.where('email', '==', user.email).get()
+          .then(query => {
+            if (!query.empty) {
+              const ref = query.docs[0].ref
+              return ref.set(user)
+              .then(() => {
+                updatedUsers.push(user)
+              })
+            } else {
+              return this.verifiedUsersRef.add(user)
+              .then(() => {
+                addedUsers.push(user)
+              })
+            }
+          })
+          .catch(() => {
+            failedUsers.push(user)
+          })
+        } else {
+          failedUsers.push(user)
+        }
+      }))
+      .then(() => {
+        const h = this.$createElement
+        const displayNode = 
+        h('el-collapse', {props: {accordion: true}}, [
+          h('el-collapse-item', {props: {title: `Added ${addedUsers.length} users`}}, [
+            this.createUsersDisplay(addedUsers)
+          ]),
+          h('el-collapse-item', {props: {title: `Updated ${updatedUsers.length} users`}}, [
+            this.createUsersDisplay(updatedUsers)
+          ]),
+          h('el-collapse-item', {props: {title: `Failed ${failedUsers.length} users`}}, [
+            this.createUsersDisplay(failedUsers)
+          ]),
+        ])
+        this.$alert(displayNode, 'Summary', {
+          callback: () => {}
+        })
+      })
+      .finally(() => {
+        loading.close()
+      })
+    },
     addNewUser() {
       const data = {
         name: this.newUserData.name,
         email: this.newUserData.email,
         ppi: this.newUserData.ppi,
       }
-        this.newUserData = {}
+      this.newUserData = {}
       this.verifiedUsersRef.where('email', '==', data.email).get()
       .then(query => {
         if (!query.empty) {
@@ -179,6 +334,9 @@ export default {
         this.deleteUser(row)
       })
     },
+    filterHandler(value, row, column) {
+      return row[column['property']] === value
+    }
   }
 }
 </script>

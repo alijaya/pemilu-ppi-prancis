@@ -3,13 +3,7 @@
     v-if="$store.statusToVote != 'valid'"
     :title="statusToVoteTitles[$store.statusToVote]"
     :description="statusToVoteDescriptions[$store.statusToVote]"
-    type="error"
-    :closable="false"/>
-  <el-alert
-    v-else
-    :title="statusToVoteTitles[$store.statusToVote]"
-    :description="statusToVoteDescriptions[$store.statusToVote]"
-    type="success"
+    :type="$store.statusToVote == 'valid' ? 'success' : 'error'"
     :closable="false"/>
 </template>
 
