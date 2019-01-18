@@ -52,7 +52,7 @@
       :default-sort = "{prop: 'name', order: 'ascending'}">
       <el-table-column sortable prop="name" label="Name" width="200"/>
       <el-table-column sortable prop="email" label="Email" width="300"/>
-      <el-table-column :filters="ppiFilters" :filter-method="filterHandler" prop="ppi" label="PPI" width="150"/>
+      <el-table-column sortable :filters="ppiFilters" :filter-method="filterHandler" prop="ppi" label="PPI" width="150"/>
       <el-table-column align="right">
         <template slot-scope="scope">
           <el-button
