@@ -100,12 +100,12 @@ export default {
   },
   methods: {
     cleanUpUser(user) {
-      const result = {}
+      const result = { name: user.name, email: user.email, ppi: user.ppi}
       const toTitleCase = s => s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.substr(1).toLowerCase())
       const removeDouble = s => s.replace(/ +/g, ' ')
-      result.name = toTitleCase(removeDouble(user.name.trim()))
-      result.email = user.email.trim().toLowerCase()
-      result.ppi = user.ppi.trim()
+      if (user.name) result.name = toTitleCase(removeDouble(user.name.trim()))
+      if (user.email) result.email = user.email.trim().toLowerCase()
+      if (user.ppi) result.ppi = user.ppi.trim()
       return result
     },
     isCleanUser(user) {
@@ -260,11 +260,11 @@ export default {
 
       const data = XLSX.utils.sheet_to_json(worksheet, {header:1})
       .map(item => {
-        return {
+        return this.cleanUpUser({
           name: item[0], 
           email: item[1], 
           ppi: item[2]
-        }
+        })
       })
 
       const h = this.$createElement
@@ -310,6 +310,7 @@ export default {
       })
       Promise.all(users.map(user => {
         if (user && user.name && user.email && user.ppi) {
+          user = this.cleanUpUser(user)
           return this.verifiedUsersRef.where('email', '==', user.email).get()
           .then(query => {
             if (!query.empty) {
@@ -355,11 +356,7 @@ export default {
       })
     },
     addNewUser() {
-      const data = {
-        name: this.newUserData.name,
-        email: this.newUserData.email,
-        ppi: this.newUserData.ppi,
-      }
+      const data = this.cleanUpUser(this.newUserData)
       this.newUserData = {}
       this.verifiedUsersRef.where('email', '==', data.email).get()
       .then(query => {
