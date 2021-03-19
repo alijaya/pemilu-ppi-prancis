@@ -90,13 +90,9 @@ export default {
     }
   },
   mounted() {
-    if (this.$store.isUserLoaded) {
+    this.$store.checkUserLoaded().then(() => {
       this.setup()
-    } else {
-      this.$store.$once('userLoaded', () => {
-        this.setup()
-      })
-    }
+    })
   },
   methods: {
     cleanUpUser(user) {
@@ -146,11 +142,13 @@ export default {
       .then(query => {
         const dict = {}
         const duplicatedDoc = []
+        const duplicatedUser = []
         query.forEach(doc => {
           const user = this.cleanUpUser(doc.data())
           if (user.email in dict) {
             // duplicated!
-            duplicatedDoc.push(user)
+            duplicatedUser.push(user)
+            duplicatedDoc.push(doc)
           } else {
             dict[user.email] = user
           }
@@ -159,7 +157,13 @@ export default {
         if (duplicatedDoc == 0) {
           this.$success('No duplicated users')
         } else {
-          this.$confirm(`Found ${duplicatedDoc.length} duplicated users. Remove duplicates?`, 'Remove Duplicates')
+          const h = this.$createElement
+          const displayNode = 
+          h('div', null, [
+            h('p', null, `Found ${duplicatedUser.length} duplicated users. Remove duplicates?`),
+            this.createUsersDisplay(duplicatedUser)
+          ])
+          this.$confirm(displayNode, 'Confirm upload')
           .then(() => {
             Promise.all(duplicatedDoc.map(doc => {
               return doc.ref.delete()

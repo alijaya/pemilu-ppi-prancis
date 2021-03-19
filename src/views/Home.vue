@@ -2,6 +2,18 @@
   <el-main class="home center">
     <CanVote />
     <article class="article">
+      <h1>Hasil Pemilu PPI Prancis 2018 - 2019</h1>
+
+      <blockquote class="highlight">
+        Ridho Indawan Utama
+        <br />
+        Dan
+        <br />
+        Naufal Avira Dani
+      </blockquote>
+
+      <router-link to="/result"><el-button type="primary">Lihat Hasil Pemilu</el-button></router-link>
+
       <h1>Pemilu PPI Prancis 2018 - 2019</h1>
       <p>
         <router-link to="/ridho"><el-button>Info tentang 1. Ridho dan Avira</el-button></router-link>
@@ -42,6 +54,11 @@ export default {
 </script>
 
 <style scoped>
+.highlight {
+  font-size: 2em;
+  font-weight: bold;
+  text-align: center;
+}
 .video-wrapper {
   position: relative;
   padding-bottom: 56.25%;

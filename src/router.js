@@ -1,12 +1,14 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import Home from './views/Home.vue'
+import Result from './views/Result.vue'
 import Ridho from './views/Ridho.vue'
 import Hazem from './views/Hazem.vue'
 import Login from './views/Login.vue'
 import VerifyLogin from './views/VerifyLogin.vue'
 import User from './views/User.vue'
 import Admin from './views/Admin.vue'
+import Moderator from './views/Moderator.vue'
 
 import firebase from '@/scripts/firebaseConfigured'
 
@@ -19,6 +21,11 @@ const router = new Router({
       path: '/',
       name: 'home',
       component: Home
+    },
+    {
+      path: '/result',
+      name: 'result',
+      component: Result
     },
     {
       path: '/ridho',
@@ -62,24 +69,41 @@ const router = new Router({
         requiresAuth: true,
         requiresAdmin: true
       }
-    }
+    },
+    {
+      path: '/moderator',
+      name: 'moderator',
+      component: Moderator,
+      meta: {
+        requiresAuth: true,
+        requiresModerator: true
+      }
+    },
   ]
 })
 
 router.beforeEach((to, from, next) => {
+  const store = window.store
   if (to.matched.some(record => record.meta.requiresAuth)) {
     if (firebase.auth().currentUser) {
-      if (to.matched.some(record => record.meta.requiresAdmin)) {
-        const isAdmin = true
-        if (isAdmin) {
-          next()
+      store.checkUserLoaded()
+      .then(() => {
+        if (to.matched.some(record => record.meta.requiresAdmin)) {
+          if (store.isAdmin) {
+            next()
+          } else {
+            next({ name: 'user' })
+          }
+        } else if (to.matched.some(record => record.meta.requiresModerator)) {
+          if (store.isAdmin || store.isModerator) {
+            next()
+          } else {
+            next({ name: 'user' })
+          }
         } else {
-          next({ name: 'user' })
+          next()
         }
-        next()
-      } else {
-        next()
-      }
+      })
     } else {
       next({
         name: 'login',

@@ -51,13 +51,9 @@ export default {
     }
   },
   mounted() {
-    if (this.$store.isUserLoaded) {
+    this.$store.checkUserLoaded().then(() => {
       this.vote = this.$store.userData.vote
-    } else {
-      this.$store.$once('userLoaded', () => {
-        this.vote = this.$store.userData.vote
-      })
-    }
+    })
   },
   methods: {
     onChange(value) {

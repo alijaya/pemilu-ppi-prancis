@@ -1,6 +1,5 @@
 <template>
   <el-alert
-    v-if="$store.statusToVote != 'valid'"
     :title="statusToVoteTitles[$store.statusToVote]"
     :description="statusToVoteDescriptions[$store.statusToVote]"
     :type="$store.statusToVote == 'valid' ? 'success' : 'error'"

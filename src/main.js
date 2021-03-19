@@ -41,9 +41,11 @@ Vue.prototype.$store = new Vue({
       userLoaded: false,
       userData: {},
       userRef: null,
+      isLoadedPromise: false,
       isLoggedIn: false,
       isRegistered: false,
       isAdmin: false,
+      isModerator: false,
       controlRef: null,
       dateRange: [Date.now(), Date.now()],
       isLocked: false,
@@ -63,6 +65,15 @@ Vue.prototype.$store = new Vue({
     }
   },
   methods: {
+    checkUserLoaded() {
+      return new Promise(resolve => {
+        if (this.isUserLoaded) {
+          resolve()
+        } else {
+          this.$once('userLoaded', resolve)
+        }
+      })
+    },
     setupGlobal() {
       this.controlRef = this.$db.collection('global').doc('control')
       this.controlRef
@@ -85,6 +96,7 @@ Vue.prototype.$store = new Vue({
       this.isLoggedIn = false
       this.isRegistered = false
       this.isAdmin = false
+      this.isModerator = false
 
       if (this.currentUser && this.currentUser != user) {
         // logout
@@ -99,6 +111,7 @@ Vue.prototype.$store = new Vue({
         const verifiedUsersRef = this.$db.collection('verified_users')
         const usersRef = this.$db.collection('users')
         const adminsRef = this.$db.collection('admins')
+        const moderatorsRef = this.$db.collection('moderators')
         this.userRef = usersRef.doc(this.userId)
 
         return this.userRef.get()
@@ -135,12 +148,21 @@ Vue.prototype.$store = new Vue({
           }
         })
         .then(() => {
-          return adminsRef.doc(this.userId).get()
-          .then(doc => {
-            if (doc.exists) {
-              this.isAdmin = true
-            }
-          })
+          return Promise.all([
+            adminsRef.doc(this.userId).get()
+            .then(doc => {
+              if (doc.exists) {
+                this.isAdmin = true
+                this.isModerator = true
+              }
+            }),
+            moderatorsRef.doc(this.userId).get()
+            .then(doc => {
+              if (doc.exists) {
+                this.isModerator = true
+              }
+            }),
+          ])
         })
         .then(() => {
           if (this.isRegistered) {
@@ -157,6 +179,7 @@ Vue.prototype.$store = new Vue({
 }).$mount('#store')
 
 window.store = Vue.prototype.$store
+window.firebase = firebase
 
 let firstTime = true
 firebase.auth().onAuthStateChanged(user => {
